@@ -1,0 +1,46 @@
+# ROS 2 colcon build artifacts
+build/
+install/
+log/
+compile_commands.json
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# CLion / JetBrains
+.idea/
+!.run/
+*.iml
+
+# VSCode
+.vscode/
+
+# Compiled binaries
+*.so
+*.a
+*.out
+*.o
+*.lo
+*.obj
+*.dll
+*.exe
+
+# Core dumps / debug
+core
+*.core
+
+# Python venv
+venv/
+.env/
+
+# Misc
+.DS_Store
+*.swp
+*~

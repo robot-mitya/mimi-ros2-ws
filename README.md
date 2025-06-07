@@ -1,8 +1,10 @@
 # mimi-ros2-ws
 
 The repository is a ROS 2 workspace containing several included ROS 2 packages.  
-This ROS 2 project provides control over the Mimi robot based on a **micro:bit** board and the **tiny:bit** mobile platform.  
+This ROS 2 project provides control over the Mimi robot based on a [**micro:bit**](https://microbit.org/) board and the [**Tiny:bit**](https://www.yahboom.net/study/Tiny:bit) mobile platform.  
 The micro:bit firmware is also part of the project, but it is located in a [separate repository](https://github.com/robot-mitya/microbit-v2-tinybit).
+
+![Tiny:bit mobile platform](images/tinybit.jpg)
 
 Development was done on **Linux OS** and **ROS 2 Kilted Kaiju**.  
 **CLion** was used as the IDE, so the codebase contains several Bash scripts  

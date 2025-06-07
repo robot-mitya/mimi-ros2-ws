@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mimi_bringup</name>
+  <version>0.0.0</version>
+  <description>Launch and system startup logic for the Mimi robot. This package defines launch files that bring up the robot's core functionality including sensor nodes, communication interfaces, and system parameters.</description>
+  <maintainer email="DzakhovDS@gmail.com">DmitryDzz</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

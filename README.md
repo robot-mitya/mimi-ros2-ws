@@ -14,6 +14,22 @@ tailored for working with this IDE. These scripts are optional but simplify work
    It initializes the ROS 2 environment, performs an initial build of the workspace  
    to generate `compile_commands.json`, and launches CLion "the right way".
 
-2. The repository includes a `.run` directory containing  
+2. The repository includes a `.run-clion` directory containing  
    CLion "Run/Debug configurations" for building the entire workspace or individual packages.  
    There is also a configuration for building and launching all solution nodes.
+
+## Quick start for development
+
+To prepare the development environment after cloning the repository (install all dependencies, including Python virtual environments for launch scripts), run:
+
+```bash
+./dev-install.sh
+```
+
+This script:
+
+- initializes the ROS 2 environment
+- installs all system dependencies using `rosdep`
+- detects Python-based ROS 2 packages in `src/*`
+- creates and activates `.venv` for each
+- installs each package via `pip install -e .`

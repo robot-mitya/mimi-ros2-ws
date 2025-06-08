@@ -22,4 +22,10 @@ def generate_launch_description():
     )
     ld.add_action(listener_node)
 
+    listener_node = Node(
+        package="mimi_common",
+        executable="gamepad_node",
+    )
+    ld.add_action(listener_node)
+
     return ld

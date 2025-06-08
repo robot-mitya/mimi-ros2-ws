@@ -19,6 +19,7 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
+            'ble_node = mimi_ble.ble_node:main'
         ],
     },
 )

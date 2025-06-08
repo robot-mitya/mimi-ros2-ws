@@ -9,13 +9,13 @@
 #include "mimi_interfaces/msg/drive.hpp"
 
 struct Vector2 {
-    double x;
-    double y;
+    float x;
+    float y;
 
     Vector2() : x(0), y(0) {
     }
 
-    Vector2(const double _x, const double _y) : x(_x), y(_y) {
+    Vector2(const float _x, const float _y) : x(_x), y(_y) {
     }
 };
 
@@ -26,14 +26,14 @@ class GamepadNode final : public rclcpp::Node {
     rclcpp::Publisher<mimi_interfaces::msg::Drive>::SharedPtr publisher_;
 
     static Vector2 CircleToSquareInFirstQuadrant(Vector2 value) {
-        double x = value.x;
-        double y = value.y;
+        float x = value.x;
+        float y = value.y;
         if (x == 0) return value; // (to avoid dividing by 0)
         if (x >= 0 && y >= 0) {
             const bool firstOctantInQuadrant = x >= y;
             if (!firstOctantInQuadrant) std::swap(x, y);
-            const double resultX = sqrt(x * x + y * y);
-            const double resultY = y * resultX / x;
+            const float resultX = sqrtf(x * x + y * y);
+            const float resultY = y * resultX / x;
             value.x = resultX;
             value.y = resultY;
             if (!firstOctantInQuadrant) std::swap(value.x, value.y);
@@ -59,12 +59,12 @@ class GamepadNode final : public rclcpp::Node {
             value = CircleToSquareInFirstQuadrant(value);
             value.y = -value.y;
         }
-        value.x = std::clamp(value.x, -1.0, 1.0);
-        value.y = std::clamp(value.y, -1.0, 1.0);
+        value.x = std::clamp(value.x, -1.0f, 1.0f);
+        value.y = std::clamp(value.y, -1.0f, 1.0f);
         return value;
     }
 
-    static Vector2 GetMotorValues(const Vector2 moveVector, const double speedFactor, const bool fastRotation) {
+    static Vector2 GetMotorValues(const Vector2 moveVector, const float speedFactor, const bool fastRotation) {
         const double leftSpeedFactor = fastRotation
                                      ? moveVector.x / 2.0
                                      : moveVector.x < 0.0
@@ -79,7 +79,7 @@ class GamepadNode final : public rclcpp::Node {
 
         const double leftSpeed = speedFactor * directionSpeedFactor * leftSpeedFactor * maxSpeed;
         const double rightSpeed = speedFactor * directionSpeedFactor * rightSpeedFactor * maxSpeed;
-        return Vector2(leftSpeed, rightSpeed);
+        return {static_cast<float>(leftSpeed), static_cast<float>(rightSpeed)};
     }
 
 public:
@@ -90,7 +90,7 @@ public:
             const Vector2 moveVector = CircleToSquare(joystickVector);
             const bool fastRotation = msg->buttons[5] > 0;                          // Right shoulder
             const double speedFactor = fastRotation ? 1.0 : (1 - msg->axes[5]) / 2; // Right trigger
-            const Vector2 motorValues = GetMotorValues(moveVector, speedFactor, fastRotation);
+            const Vector2 motorValues = GetMotorValues(moveVector, static_cast<float>(speedFactor), fastRotation);
             // RCLCPP_INFO(this->get_logger(), "Left joystick: [%4.1f, %4.1f], speed: [%4.1f]", msg->axes[0], msg->axes[1], msg->axes[5]);
             // RCLCPP_INFO(this->get_logger(), "Move vector: [%4.1f, %4.1f], speedFactor: [%4.1f], fastRotation: [%d]", moveVector.x, moveVector.y, speedFactor, fastRotation);
             mimi_interfaces::msg::Drive driveMsg;

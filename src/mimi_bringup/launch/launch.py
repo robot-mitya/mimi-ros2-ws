@@ -10,10 +10,16 @@ def generate_launch_description():
     )
     ld.add_action(joy_node)
 
-    listener_node = Node(
+    gamepad_node = Node(
         package="mimi_common",
         executable="gamepad_node",
     )
-    ld.add_action(listener_node)
+    ld.add_action(gamepad_node)
+
+    ble_node = Node(
+        package="mimi_ble",
+        executable="ble_node",
+    )
+    ld.add_action(ble_node)
 
     return ld

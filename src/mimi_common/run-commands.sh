@@ -11,6 +11,4 @@ cd "$WS_DIR"
 colcon build --packages-select mimi_common --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja
 
 source "$WS_DIR/install/setup.bash"
-#gnome-terminal -- bash -c "ros2 run mimi_common talker; exec bash"
-#gnome-terminal -- bash -c "ros2 run mimi_common listener; exec bash"
 gnome-terminal -- bash -c "ros2 launch mimi_bringup launch.py; exec bash"

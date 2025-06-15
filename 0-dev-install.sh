@@ -8,23 +8,21 @@ echo "[INFO] Running rosdep to install system dependencies..."
 rosdep update
 rosdep install --from-paths src --ignore-src -y --rosdistro=kilted
 
-# Setup all known Python virtual environments
+echo "[INFO] Setting up shared virtual environment in workspace root..."
+python3 -m venv .venv
+source .venv/bin/activate
+
+echo "[INFO] Upgrading pip and setuptools..."
+pip install -U pip setuptools
+pip install empy catkin_pkg lark-parser pyyaml numpy
+
+echo "[INFO] Installing all Python packages in editable mode..."
 for pkg in src/*/; do
-  if [ -f "$pkg/pyproject.toml" ] || [ -f "$pkg/setup.py" ]; then
-    echo "[INFO] Setting up Python package: $pkg"
-
-    cd "$pkg"
-    if [ ! -d ".venv" ]; then
-      echo "[INFO] Creating venv in $pkg"
-      python3 -m venv .venv
-    fi
-
-    source .venv/bin/activate
-    pip install -U pip setuptools
-    pip install -e .
-    deactivate
-    cd - > /dev/null
+  if [ -f "$pkg/setup.py" ] || [ -f "$pkg/pyproject.toml" ]; then
+    echo "  ↪ $pkg"
+    pip install -e "$pkg"
   fi
 done
 
-echo "[SUCCESS] Development environment is ready."
+echo "[SUCCESS] Development environment is ready. Don't forget to run:"
+echo "  source .venv/bin/activate"

@@ -20,10 +20,11 @@ tailored for working with this IDE. These scripts are optional but simplify work
 
 ## Quick start for development
 
-To prepare the development environment after cloning the repository (install all dependencies, including Python virtual environments for launch scripts), run:
+To prepare the development environment after cloning the repository
+(install all dependencies, including Python virtual environments for launch scripts), run:
 
 ```bash
-./dev-install.sh
+./0-dev-install.sh
 ```
 
 This script:
@@ -33,3 +34,9 @@ This script:
 - detects Python-based ROS 2 packages in `src/*`
 - creates and activates `.venv` for each
 - installs each package via `pip install -e .`
+
+Разработка велась в IDE CLion и PyCharm Community.
+Запуск CLion следует выполнять из корневой папки воркспейса скриптом `./open-in-clion.sh`.
+Чтобы не было конфликтов папок `.idea`, запуск PyCharm следует выполнять из папок Python-пакетов.
+Для этого в нём (в них) есть скрипт `./open-in-pycharm.sh`. 
+

@@ -17,6 +17,12 @@ def generate_launch_description():
     )
     ld.add_action(gamepad_node)
 
+    ble_node = Node(
+        package="mimi_ble",
+        executable="ble_node",
+    )
+    ld.add_action(ble_node)
+
     # Prepare environment for mimi_ble (venv + PYTHONPATH)
     # ws_root = os.path.dirname(os.path.dirname(__file__))
     # venv_path = os.path.join(ws_root, ".venv")

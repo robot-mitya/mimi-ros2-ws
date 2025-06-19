@@ -17,14 +17,16 @@ class BleNode final : public rclcpp::Node {
     }
 
 public:
-    BleNode()
-        : Node("ble_node") {
+    BleNode() : Node("ble_node") {
+        // declare_parameter("robot_name", "");
+
         auto driveTopicCallback = [this](const mimi_interfaces::msg::Drive::UniquePtr &msg) -> void {
+            if (!bleClient->isConnected()) return;
             const int16_t leftSpeed = toInt255(msg->left_speed);
             const int16_t rightSpeed = toInt255(msg->right_speed);
             std::string driveCommand = mimi::str("drv ", leftSpeed, " ", rightSpeed, "\r\n");
             // RCLCPP_INFO(this->get_logger(), "Sending command: %s", driveCommand.c_str());
-            if (!bleClient->send(driveCommand.c_str())) {
+            if (!bleClient->send(driveCommand)) {
                 RCLCPP_ERROR(this->get_logger(), "Sending command failed");
             }
         };
@@ -36,6 +38,7 @@ int main(const int argc, char *argv[]) {
     rclcpp::init(argc, argv);
 
     const auto node = std::make_shared<BleNode>();
+    // rclcpp::Parameter paramRobotName = node->get_parameter("robot_name");
 
     bleClient = std::make_shared<mimi::BleUartClient>(
         [node](const std::string& deviceAlias, const std::string& connectedText, const bool afterFailure) {
@@ -52,6 +55,7 @@ int main(const int argc, char *argv[]) {
         }
     );
     bleClient->connect("BBC micro:bit", true);
+    // bleClient->connect(paramRobotName.as_string(), true);
 
     rclcpp::Rate rate(20);  // 50ms
     while (rclcpp::ok()) {

@@ -11,6 +11,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
         "msg/cmd/DriveCmd.msg"
         "msg/cmd/ScrAnimCmd.msg"
+        "msg/cmd/HeadlightsCmd.msg"
 )
 
 ament_package()

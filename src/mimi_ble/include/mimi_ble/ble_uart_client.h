@@ -1,7 +1,6 @@
 #ifndef BLE_UART_CLIENT_H
 #define BLE_UART_CLIENT_H
 
-#include <string>
 #include <vector>
 #include <functional>
 #include <queue>
@@ -27,35 +26,54 @@ struct PairedDevice {
 
 class BleUartClient {
 public:
-    using ConnectCallback = std::function<void(const std::string&, const std::string&, bool afterFailure)>;
-    using DisconnectCallback = std::function<void(const std::string&, const std::string&, bool isFailure)>;
-    using ErrorCallback = std::function<void(const std::string&, const std::string&, const std::string&, bool isConnected)>;
-    using ReceiveCallback = std::function<void(const std::string&, const std::string&)>;
+    enum class State {
+        Disconnected,
+        Connected,
+        Reconnecting,
+    };
 
-    BleUartClient(
+    using ConnectCallback = std::function<void(const std::string& deviceAlias, const std::string& message, bool afterFailure)>;
+    using DisconnectCallback = std::function<void(const std::string& deviceAlias, const std::string& message, bool isFailure)>;
+    using StateChangedCallback = std::function<void(const std::string& deviceAlias, const State& state)>;
+    using ErrorCallback = std::function<void(const std::string& deviceAlias, const std::string& message, const std::string& sdbusErrorName, const State& state)>;
+    using ReceiveCallback = std::function<void(const std::string& deviceAlias, const std::string& receivedText)>;
+
+    ~BleUartClient();
+
+    void setCallbacks(
         ConnectCallback connectCallback,
         DisconnectCallback disconnectCallback,
+        StateChangedCallback stateChangedCallback,
         ErrorCallback errorCallback,
         ReceiveCallback receiveCallback);
-    ~BleUartClient();
 
     static std::vector<PairedDevice> listPairedDevices();
     bool connect(const std::string& alias, bool keepConnection);
     bool disconnect();
-    [[nodiscard]] bool isConnected() const { return isConnected_; }
+    [[nodiscard]] State getState() const;
     [[nodiscard]] bool send(const std::string& text);
     void processCallbacks();
+
+    static const char* stateToString(const State& state) {
+        switch (state) {
+            case State::Disconnected: return "Disconnected";
+            case State::Connected:    return "Connected";
+            case State::Reconnecting: return "Reconnecting";
+        }
+        return "Unknown";
+    }
 private:
-    ConnectCallback connectCallback_;
-    DisconnectCallback disconnectCallback_;
-    ErrorCallback errorCallback_;
-    ReceiveCallback receiveCallback_;
+    ConnectCallback connectCallback_ = nullptr;
+    DisconnectCallback disconnectCallback_ = nullptr;
+    StateChangedCallback stateChangedCallback_ = nullptr;
+    ErrorCallback errorCallback_ = nullptr;
+    ReceiveCallback receiveCallback_ = nullptr;
 
     std::string deviceAlias_;
     bool keepConnection_ = false;
-    bool isConnected_ = false;
+    std::atomic<State> state_ = State::Disconnected;
+    void setState(const State& state);
 
-    std::atomic<bool> reconnecting_ = false;
     std::thread reconnectThread_;
     void startReconnectLoop();
     static constexpr int ReconnectIntervalInSeconds = 30;
@@ -71,8 +89,9 @@ private:
     std::mutex callbackQueueMutex_;
     void postConnect(const std::string& message, bool afterFailure);
     void postDisconnect(const std::string& message, bool isFailure);
+    void postStateChanged(const State& state);
     void postReceive(const std::string& message);
-    void postError(const std::string& message, const std::string& sdbusErrorName, bool isConnected);
+    void postError(const std::string& message, const std::string& sdbusErrorName, const State& state);
 
     bool doConnect();
     bool findDevice(std::vector<PairedDevice> pairedDevices, PairedDevice& pairedDevice);

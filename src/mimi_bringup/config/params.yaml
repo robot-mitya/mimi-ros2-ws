@@ -1,0 +1,3 @@
+/ble_node:
+  ros__parameters:
+    robot_name: "BBC micro:bit"

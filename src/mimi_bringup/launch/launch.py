@@ -1,9 +1,16 @@
 from launch import LaunchDescription  # type: ignore
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
     ld = LaunchDescription()
+
+    config = os.path.join(
+        get_package_share_directory("mimi_bringup"),
+        "config",
+        "params.yaml"
+    )
 
     joy_node = Node(
         package="joy",
@@ -20,24 +27,9 @@ def generate_launch_description():
     ble_node = Node(
         package="mimi_ble",
         executable="ble_node",
+        # name="ble_node",
+        parameters=[config],
     )
     ld.add_action(ble_node)
-
-    # Prepare environment for mimi_ble (venv + PYTHONPATH)
-    # ws_root = os.path.dirname(os.path.dirname(__file__))
-    # venv_path = os.path.join(ws_root, ".venv")
-    # python_site = os.path.join(venv_path, "lib", "python3.12", "site-packages")
-    #
-    # custom_env = os.environ.copy()
-    # custom_env["PATH"] = os.path.join(venv_path, "bin") + ":" + custom_env["PATH"]
-    # custom_env["PYTHONPATH"] = python_site + ":" + custom_env.get("PYTHONPATH", "")
-    #
-    # ble_node = Node(
-    #     package="mimi_ble",
-    #     executable="ble_node",
-    #     env=custom_env,
-    #     output="screen",
-    # )
-    # ld.add_action(ble_node)
 
     return ld

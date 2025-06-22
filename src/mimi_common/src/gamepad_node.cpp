@@ -6,7 +6,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
-#include "mimi_interfaces/msg/drive.hpp"
+#include "mimi_interfaces/msg/drive_cmd.hpp"
+#include "mimi_interfaces/msg/scr_anim_cmd.hpp"
 
 struct Vector2 {
     float x;
@@ -23,7 +24,7 @@ class GamepadNode final : public rclcpp::Node {
     static constexpr double maxSpeed = 1.0;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
-    rclcpp::Publisher<mimi_interfaces::msg::Drive>::SharedPtr publisher_;
+    rclcpp::Publisher<mimi_interfaces::msg::DriveCmd>::SharedPtr publisher_;
 
     static Vector2 CircleToSquareInFirstQuadrant(Vector2 value) {
         float x = value.x;
@@ -93,13 +94,13 @@ public:
             const Vector2 motorValues = GetMotorValues(moveVector, static_cast<float>(speedFactor), fastRotation);
             // RCLCPP_INFO(this->get_logger(), "Left joystick: [%4.1f, %4.1f], speed: [%4.1f]", msg->axes[0], msg->axes[1], msg->axes[5]);
             // RCLCPP_INFO(this->get_logger(), "Move vector: [%4.1f, %4.1f], speedFactor: [%4.1f], fastRotation: [%d]", moveVector.x, moveVector.y, speedFactor, fastRotation);
-            mimi_interfaces::msg::Drive driveMsg;
+            mimi_interfaces::msg::DriveCmd driveMsg;
             driveMsg.left_speed = motorValues.x;
             driveMsg.right_speed = motorValues.y;
             publisher_->publish(driveMsg);
             // RCLCPP_INFO(this->get_logger(), "Motor values: [%4.1f, %4.1f]", driveMsg.left_speed, driveMsg.right_speed);
         };
-        publisher_ = this->create_publisher<mimi_interfaces::msg::Drive>("/drive", 10);
+        publisher_ = this->create_publisher<mimi_interfaces::msg::DriveCmd>("/cmd/drive_cmd", 10);
         subscription_ =
                 this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, joyTopicCallback);
     }

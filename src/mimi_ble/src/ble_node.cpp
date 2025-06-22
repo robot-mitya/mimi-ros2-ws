@@ -1,7 +1,7 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "mimi_interfaces/msg/drive.hpp"
+#include "mimi_interfaces/msg/drive_cmd.hpp"
 #include "mimi_ble/ble_uart_client.h"
 
 std::shared_ptr<mimi::BleUartClient> bleClient;
@@ -11,7 +11,7 @@ class BleNode final : public rclcpp::Node {
 
     std::string _robotName;
 
-    rclcpp::Subscription<mimi_interfaces::msg::Drive>::SharedPtr driveSubscription_;
+    rclcpp::Subscription<mimi_interfaces::msg::DriveCmd>::SharedPtr driveSubscription_;
 
     static int16_t toInt255(double value) {
         value = std::clamp(value, -1.0, 1.0);
@@ -23,7 +23,7 @@ public:
         _robotName = declare_parameter("robot_name", "mimi");
         get_parameter("robot_name", _robotName);
 
-        auto driveTopicCallback = [this](const mimi_interfaces::msg::Drive::UniquePtr &msg) -> void {
+        auto driveTopicCallback = [this](const mimi_interfaces::msg::DriveCmd::UniquePtr &msg) -> void {
             if (bleClient->getState() != mimi::BleUartClient::State::Connected) return;
             const int16_t leftSpeed = toInt255(msg->left_speed);
             const int16_t rightSpeed = toInt255(msg->right_speed);
@@ -32,7 +32,7 @@ public:
                 RCLCPP_ERROR(this->get_logger(), "Sending command failed");
             }
         };
-        driveSubscription_ = this->create_subscription<mimi_interfaces::msg::Drive>("/drive", 10, driveTopicCallback);
+        driveSubscription_ = this->create_subscription<mimi_interfaces::msg::DriveCmd>("/cmd/drive_cmd", 10, driveTopicCallback);
     }
 
     std::string& getRobotName() {

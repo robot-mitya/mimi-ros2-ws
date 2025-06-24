@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+using PublishHeadlightsCmdCallback = std::function<void(Color3 color)>;
+
 class HeadlightsManager {
     PublishHeadlightsCmdCallback publishCallback_ = nullptr;
     uint8_t pressedButtons_ = 0b00000000;

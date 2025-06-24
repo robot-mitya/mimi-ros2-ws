@@ -22,8 +22,6 @@ struct Color3 {
     }
 };
 
-using PublishHeadlightsCmdCallback = std::function<void(Color3 color)>;
-
 class Xbox {
 public:
     static constexpr int leftJoystickAxisX = 0;

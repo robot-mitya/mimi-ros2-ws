@@ -7,9 +7,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "types.h"
+#include "screen_animation_manager.h"
 #include "headlights_manager.h"
 #include "mimi_interfaces/msg/drive_cmd.hpp"
-#include "mimi_interfaces/msg/scr_anim_cmd.hpp"
 #include "mimi_interfaces/msg/headlights_cmd.hpp"
 
 class GamepadNode final : public rclcpp::Node {
@@ -88,22 +88,9 @@ class GamepadNode final : public rclcpp::Node {
         return std::fabs(a - b) < 1e-3f;
     }
 
-    static constexpr int scrAnimEmpty = 0;
-    static constexpr int scrAnimBluetooth = 1;
-    static constexpr int scrAnimYes = 2;
-    static constexpr int scrAnimNo = 3;
-    static constexpr int scrAnimHeart = 4;
-    static constexpr int scrAnimSpinner = 5;
-    static constexpr int scrAnimNormalFace = 6;
-    static constexpr int scrAnimHappyFace = 7;
-    static constexpr int scrAnimSadFace = 8;
-    static constexpr int scrAnimAngryFace = 9;
-    static constexpr int scrAnimTalkingFace = 10;
-
     Color3 headlightsColor_;
     bool headlightsOn_ = false;
 
-    mimi_interfaces::msg::ScrAnimCmd scrAnimMsg_;
     mimi_interfaces::msg::DriveCmd driveMsg_;
 
     void processControlModeSwitching(const sensor_msgs::msg::Joy::UniquePtr &msg) {
@@ -120,41 +107,7 @@ class GamepadNode final : public rclcpp::Node {
         }
     }
 
-    void processScreenAnimationCommands(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        if (controlMode_ != ControlMode::ScreenAnimations) return;
-        const bool bumperPressed = msg->buttons[Xbox::leftBumperButton] == 1;
-        const bool pressedA = msg->buttons[Xbox::buttonA] == 1;
-        const bool pressedB = msg->buttons[Xbox::buttonB] == 1;
-        const bool pressedX = msg->buttons[Xbox::buttonX] == 1;
-        const bool pressedY = msg->buttons[Xbox::buttonY] == 1;
-        std::optional<uint32_t> scrAnimId;
-        if (bumperPressed) {
-            if (pressedA) {
-                scrAnimId = scrAnimHeart;
-            } else if (pressedB) {
-                scrAnimId = scrAnimAngryFace;
-            } else if (pressedX) {
-                scrAnimId = scrAnimSpinner;
-            } else if (pressedY) {
-                scrAnimId = scrAnimNo;
-            }
-        } else {
-            if (pressedA) {
-                scrAnimId = scrAnimHappyFace;
-            } else if (pressedB) {
-                scrAnimId = scrAnimSadFace;
-            } else if (pressedX) {
-                scrAnimId = scrAnimTalkingFace;
-            } else if (pressedY) {
-                scrAnimId = scrAnimYes;
-            }
-        }
-        if (scrAnimId.has_value() && scrAnimMsg_.id != *scrAnimId) {
-            scrAnimMsg_.id = *scrAnimId;
-            publisherScrAnimCmd_->publish(scrAnimMsg_);
-        }
-    }
-
+    ScreenAnimationManager screenAnimationManager_;
     HeadlightsManager headlightsManager_;
 
     void processDriveCommands(const sensor_msgs::msg::Joy::UniquePtr &msg) {
@@ -175,6 +128,10 @@ class GamepadNode final : public rclcpp::Node {
     }
 public:
     GamepadNode() : Node("gamepad_node") {
+        this->screenAnimationManager_.setPublishCallback([this] (const mimi_interfaces::msg::ScrAnimCmd scrAnimMsg) {
+            publisherScrAnimCmd_->publish(scrAnimMsg);
+        });
+
         this->headlightsManager_.setPublishCallback([this] (const Color3 color) {
             mimi_interfaces::msg::HeadlightsCmd message;
             message.red = color.r;
@@ -185,7 +142,9 @@ public:
 
         auto joyTopicCallback = [this](const sensor_msgs::msg::Joy::UniquePtr &msg) -> void {
             this->processControlModeSwitching(msg);
-            this->processScreenAnimationCommands(msg);
+            if (controlMode_ == ControlMode::ScreenAnimations) {
+                this->screenAnimationManager_.process(msg);
+            }
             if (controlMode_ == ControlMode::Headlights) {
                 this->headlightsManager_.process(msg);
             }

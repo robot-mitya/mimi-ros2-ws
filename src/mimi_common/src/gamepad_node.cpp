@@ -43,10 +43,10 @@ struct Color3 {
     float b;
     Color3() : r(0), g(0), b(0) {}
     Color3(const float r, const float g, const float b) : r(r), g(g), b(b) {}
-    bool isSame(const float rr, const float gg, const float bb) const {
+    [[nodiscard]] bool isSame(const float rr, const float gg, const float bb) const {
         return r == rr && g == gg && b == bb;
     }
-    bool isSame(const Color3 other) const {
+    [[nodiscard]] bool isSame(const Color3 other) const {
         return r == other.r && g == other.g && b == other.b;
     }
 };
@@ -99,7 +99,7 @@ class HeadlightsManager {
 
                 if (publishCallback_) {
                     const float factor = headlightsOn_ ? 1.0f : 0.0f;
-                    const Color3 msgColor((*newColor).r * factor, (*newColor).g * factor, (*newColor).b * factor);
+                    const Color3 msgColor(newColor->r * factor, newColor->g * factor, newColor->b * factor);
                     if (!msgColor.isSame(msgColor_)) {
                         msgColor_.r = msgColor.r;
                         msgColor_.g = msgColor.g;

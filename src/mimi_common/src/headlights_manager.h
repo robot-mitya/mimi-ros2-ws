@@ -12,15 +12,23 @@ class HeadlightsManager {
     Color3 srcColor_{1, 1, 1};
     Color3 msgColor_;
 
-    void processTrigger(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        if (!headlightsOn_ && !srcColor_.isSame(0, 0, 0)) {
-            const float factor = (1 - msg->axes[Xbox::leftTriggerAxis]) / 2;
-            const Color3 msgColor(srcColor_.r * factor, srcColor_.g * factor, srcColor_.b * factor);
-            if (!msgColor.isSame(msgColor_)) {
-                msgColor_.r = msgColor.r;
-                msgColor_.g = msgColor.g;
-                msgColor_.b = msgColor.b;
-                publishCallback_(msgColor_);
+    std::optional<rclcpp::Time> lastProcessTriggerTime_;
+    rclcpp::Duration minProcessTriggerPublishInterval_{0, 50000000}; // 50 ms = 20 Hz
+
+    void processTrigger(rclcpp::Node* node, const sensor_msgs::msg::Joy::UniquePtr &msg) {
+        if (publishCallback_ && !headlightsOn_ && !srcColor_.isSame(0, 0, 0)) {
+            const auto now = node->get_clock()->now();
+            if (!lastProcessTriggerTime_.has_value() || now - *lastProcessTriggerTime_ > minProcessTriggerPublishInterval_) {
+                const float factor = (1 - msg->axes[Xbox::leftTriggerAxis]) / 2;
+                const Color3 msgColor(srcColor_.r * factor, srcColor_.g * factor, srcColor_.b * factor);
+                if (!msgColor.isSame(msgColor_)) {
+                    msgColor_.r = msgColor.r;
+                    msgColor_.g = msgColor.g;
+                    msgColor_.b = msgColor.b;
+                    publishCallback_(msgColor_);
+                }
+
+                lastProcessTriggerTime_ = now;
             }
         }
     }
@@ -70,9 +78,9 @@ public:
         publishCallback_ = std::move(publishCallback);
     }
 
-    void process(const sensor_msgs::msg::Joy::UniquePtr &msg) {
+    void process(rclcpp::Node* node, const sensor_msgs::msg::Joy::UniquePtr &msg) {
         processButtons(msg);
-        processTrigger(msg);
+        processTrigger(node, msg);
     }
 };
 

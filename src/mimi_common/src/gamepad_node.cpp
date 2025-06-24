@@ -16,6 +16,7 @@
 
 class GamepadNode final : public rclcpp::Node {
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscriptionJoy_;
+
     rclcpp::Publisher<mimi_interfaces::msg::DriveCmd>::SharedPtr publisherDriveCmd_;
     rclcpp::Publisher<mimi_interfaces::msg::ScrAnimCmd>::SharedPtr publisherScrAnimCmd_;
     rclcpp::Publisher<mimi_interfaces::msg::HeadlightsCmd>::SharedPtr publisherHeadlightsCmd_;
@@ -24,6 +25,31 @@ class GamepadNode final : public rclcpp::Node {
     DriveManager driveManager_;
     ScreenAnimationManager screenAnimationManager_;
     HeadlightsManager headlightsManager_;
+
+    void onJoyMessageReceived(const sensor_msgs::msg::Joy::UniquePtr &msg) {
+        const auto now = this->get_clock()->now();
+        if ((now - msg->header.stamp).seconds() > 0.02) {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 5000,
+                "Dropping stale joy message (%.3f s old)",
+                (now - msg->header.stamp).seconds()
+            );
+            return;
+        }
+
+        this->controlModeManager_.process(msg);
+        const ControlMode controlMode = this->controlModeManager_.getControlMode();
+
+        this->driveManager_.process(this, msg);
+
+        if (controlMode == ControlMode::ScreenAnimations) {
+            this->screenAnimationManager_.process(msg);
+        }
+
+        if (controlMode == ControlMode::Headlights) {
+            this->headlightsManager_.process(this, msg);
+        }
+    }
 public:
     GamepadNode() : Node("gamepad_node") {
         this->controlModeManager_.setControlModeChangedCallback([this] (const ControlMode& controlMode) {
@@ -53,25 +79,18 @@ public:
             publisherHeadlightsCmd_->publish(message);
         });
 
-        auto joyTopicCallback = [this](const sensor_msgs::msg::Joy::UniquePtr &msg) -> void {
-            this->controlModeManager_.process(msg);
-            const ControlMode controlMode = this->controlModeManager_.getControlMode();
-
-            this->driveManager_.process(msg);
-
-            if (controlMode == ControlMode::ScreenAnimations) {
-                this->screenAnimationManager_.process(msg);
-            }
-
-            if (controlMode == ControlMode::Headlights) {
-                this->headlightsManager_.process(msg);
-            }
-        };
-
         publisherDriveCmd_ = this->create_publisher<mimi_interfaces::msg::DriveCmd>("/cmd/drive_cmd", 10);
         publisherScrAnimCmd_ = this->create_publisher<mimi_interfaces::msg::ScrAnimCmd>("/cmd/scr_anim_cmd", 10);
         publisherHeadlightsCmd_ = this->create_publisher<mimi_interfaces::msg::HeadlightsCmd>("/cmd/headlights_cmd", 10);
-        subscriptionJoy_ = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, joyTopicCallback);
+
+        // subscriptionJoy_ = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, joyTopicCallback);
+        subscriptionJoy_ = this->create_subscription<sensor_msgs::msg::Joy>(
+            "/joy",
+            rclcpp::SensorDataQoS().keep_last(1),
+            [this](const sensor_msgs::msg::Joy::UniquePtr &msg) {
+                this->onJoyMessageReceived(msg);
+            }
+        );
     }
 };
 

@@ -15,6 +15,7 @@ def generate_launch_description():
     joy_node = Node(
         package="joy",
         executable="joy_node",
+        parameters=[config],
     )
     ld.add_action(joy_node)
 

@@ -9,6 +9,9 @@ using PublishDriveCmdCallback = std::function<void(mimi_interfaces::msg::DriveCm
 class DriveManager {
     PublishDriveCmdCallback publishCallback_ = nullptr;
 
+    std::optional<rclcpp::Time> lastProcessTime_;
+    rclcpp::Duration minProcessPublishInterval_{0, 50000000}; // 50 ms = 20 Hz
+
     mimi_interfaces::msg::DriveCmd driveMsg_;
 
     static constexpr double maxSpeed = 1.0;
@@ -35,21 +38,22 @@ public:
         publishCallback_ = std::move(publishCallback);
     }
 
-    void process(const sensor_msgs::msg::Joy::UniquePtr &msg) {
+    void process(rclcpp::Node* node, const sensor_msgs::msg::Joy::UniquePtr &msg) {
         const Vector2 joystickVector(-msg->axes[Xbox::leftJoystickAxisX], msg->axes[Xbox::leftJoystickAxisY]);
         const Vector2 moveVector = CommonHelper::CircleToSquare(joystickVector);
         const bool fastRotation = msg->buttons[Xbox::rightBumperButton] > 0;
         const double speedFactor = fastRotation ? 1.0 : (1 - msg->axes[Xbox::rightTriggerAxis]) / 2;
         const Vector2 motorValues = GetMotorValues(moveVector, static_cast<float>(speedFactor), fastRotation);
 
-        // driveMsg_.left_speed = motorValues.x;
-        // driveMsg_.right_speed = motorValues.y;
-        // publisherDriveCmd_->publish(driveMsg_);
         if (!CommonHelper::approximatelyEqual(driveMsg_.left_speed, motorValues.x) || !CommonHelper::approximatelyEqual(driveMsg_.right_speed, motorValues.y)) {
-            driveMsg_.left_speed = motorValues.x;
-            driveMsg_.right_speed = motorValues.y;
-            if (publishCallback_) {
-                publishCallback_(driveMsg_);
+            const auto now = node->get_clock()->now();
+            if (!lastProcessTime_.has_value() || now - *lastProcessTime_ > minProcessPublishInterval_) {
+                driveMsg_.left_speed = motorValues.x;
+                driveMsg_.right_speed = motorValues.y;
+                if (publishCallback_) {
+                    publishCallback_(driveMsg_);
+                }
+                lastProcessTime_ = now;
             }
         }
     }

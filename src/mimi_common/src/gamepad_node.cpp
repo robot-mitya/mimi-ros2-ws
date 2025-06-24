@@ -7,6 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "types.h"
+#include "control_mode_manager.h"
 #include "drive_manager.h"
 #include "screen_animation_manager.h"
 #include "headlights_manager.h"
@@ -14,40 +15,28 @@
 #include "mimi_interfaces/msg/headlights_cmd.hpp"
 
 class GamepadNode final : public rclcpp::Node {
-    enum class ControlMode {
-        ScreenAnimations,
-        Headlights,
-    };
-
-    ControlMode controlMode_ = ControlMode::ScreenAnimations;
-
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscriptionJoy_;
     rclcpp::Publisher<mimi_interfaces::msg::DriveCmd>::SharedPtr publisherDriveCmd_;
     rclcpp::Publisher<mimi_interfaces::msg::ScrAnimCmd>::SharedPtr publisherScrAnimCmd_;
     rclcpp::Publisher<mimi_interfaces::msg::HeadlightsCmd>::SharedPtr publisherHeadlightsCmd_;
 
-    Color3 headlightsColor_;
-    bool headlightsOn_ = false;
-
-    void processControlModeSwitching(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        if (CommonHelper::approximatelyEqual(msg->axes[Xbox::dPadAxisX], -1)) { // D-PAD RIGHT
-            if (controlMode_ != ControlMode::Headlights) {
-                controlMode_ = ControlMode::Headlights;
-                RCLCPP_INFO(this->get_logger(), "Switched to ControlMode::Headlights");
-            }
-        } else if (CommonHelper::approximatelyEqual(msg->axes[Xbox::dPadAxisY], 1)) { // D-PAD UP
-            if (controlMode_ != ControlMode::ScreenAnimations) {
-                controlMode_ = ControlMode::ScreenAnimations;
-                RCLCPP_INFO(this->get_logger(), "Switched to ControlMode::ScreenAnimations");
-            }
-        }
-    }
-
+    ControlModeManager controlModeManager_;
     DriveManager driveManager_;
     ScreenAnimationManager screenAnimationManager_;
     HeadlightsManager headlightsManager_;
 public:
     GamepadNode() : Node("gamepad_node") {
+        this->controlModeManager_.setControlModeChangedCallback([this] (const ControlMode& controlMode) {
+            std::optional<std::string> modeName;
+            switch (controlMode) {
+                case ControlMode::ScreenAnimations: modeName = "ScreenAnimations"; break;
+                case ControlMode::Headlights: modeName = "Headlights"; break;
+            }
+            if (modeName) {
+                RCLCPP_INFO(this->get_logger(), "Switched to %s mode", modeName->c_str());
+            }
+        });
+
         this->driveManager_.setPublishCallback([this] (const mimi_interfaces::msg::DriveCmd driveMsg) {
             publisherDriveCmd_->publish(driveMsg);
         });
@@ -65,15 +54,16 @@ public:
         });
 
         auto joyTopicCallback = [this](const sensor_msgs::msg::Joy::UniquePtr &msg) -> void {
-            this->processControlModeSwitching(msg);
+            this->controlModeManager_.process(msg);
+            const ControlMode controlMode = this->controlModeManager_.getControlMode();
 
             this->driveManager_.process(msg);
 
-            if (controlMode_ == ControlMode::ScreenAnimations) {
+            if (controlMode == ControlMode::ScreenAnimations) {
                 this->screenAnimationManager_.process(msg);
             }
 
-            if (controlMode_ == ControlMode::Headlights) {
+            if (controlMode == ControlMode::Headlights) {
                 this->headlightsManager_.process(msg);
             }
         };

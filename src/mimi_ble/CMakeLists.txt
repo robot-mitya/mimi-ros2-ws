@@ -22,9 +22,9 @@ add_definitions(${SDBUSPP_CFLAGS_OTHER})
 
 add_executable(ble_node src/ble_node.cpp src/ble_uart_client.cpp)
 
-target_include_directories(ble_node PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
+#target_include_directories(ble_node PUBLIC
+#        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#)
 
 target_link_libraries(ble_node PUBLIC
         rclcpp::rclcpp

@@ -1,7 +1,7 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "mimi_ble/ble_uart_client.h"
+#include "ble_uart_client.h"
 #include "mimi_interfaces/msg/drive_cmd.hpp"
 #include "mimi_interfaces/msg/scr_anim_cmd.hpp"
 #include "mimi_interfaces/msg/headlights_cmd.hpp"

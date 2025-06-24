@@ -1,5 +1,5 @@
 // ReSharper disable CppTooWideScopeInitStatement
-#include "mimi_ble/ble_uart_client.h"
+#include "ble_uart_client.h"
 #include <iomanip>
 #include <thread>
 #include <utility>

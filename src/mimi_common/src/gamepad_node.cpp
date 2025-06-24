@@ -6,123 +6,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include "types.h"
+#include "headlights_manager.h"
 #include "mimi_interfaces/msg/drive_cmd.hpp"
 #include "mimi_interfaces/msg/scr_anim_cmd.hpp"
 #include "mimi_interfaces/msg/headlights_cmd.hpp"
-
-static constexpr int leftJoystickAxisX = 0;
-static constexpr int leftJoystickAxisY = 1;
-static constexpr int leftTriggerAxis = 2;
-// static constexpr int rightJoystickAxisX = 3;
-// static constexpr int rightJoystickAxisY = 4;
-static constexpr int rightTriggerAxis = 5;
-static constexpr int dPadAxisX = 6;
-static constexpr int dPadAxisY = 7;
-static constexpr int buttonA = 0;
-static constexpr int buttonB = 1;
-static constexpr int buttonX = 2;
-static constexpr int buttonY = 3;
-static constexpr int leftBumperButton = 4;
-static constexpr int rightBumperButton = 5;
-// static constexpr int backButton = 6;
-// static constexpr int startButton = 7;
-// static constexpr int guideButton = 8;
-// static constexpr int leftStickButton = 9;
-// static constexpr int rightStickButton = 10;
-
-struct Vector2 {
-    float x;
-    float y;
-    Vector2() : x(0), y(0) {}
-    Vector2(const float _x, const float _y) : x(_x), y(_y) {}
-};
-
-struct Color3 {
-    float r;
-    float g;
-    float b;
-    Color3() : r(0), g(0), b(0) {}
-    Color3(const float r, const float g, const float b) : r(r), g(g), b(b) {}
-    [[nodiscard]] bool isSame(const float rr, const float gg, const float bb) const {
-        return r == rr && g == gg && b == bb;
-    }
-    [[nodiscard]] bool isSame(const Color3 other) const {
-        return r == other.r && g == other.g && b == other.b;
-    }
-};
-
-using PublishHeadlightsCmdCallback = std::function<void(Color3 color)>;
-
-class HeadlightsManager {
-    PublishHeadlightsCmdCallback publishCallback_ = nullptr;
-    uint8_t pressedButtons_ = 0b00000000;
-    bool headlightsOn_ = false;
-    Color3 srcColor_{1, 1, 1};
-    Color3 msgColor_;
-
-    void processTrigger(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        if (!headlightsOn_ && !srcColor_.isSame(0, 0, 0)) {
-            const float factor = (1 - msg->axes[leftTriggerAxis]) / 2;
-            const Color3 msgColor(srcColor_.r * factor, srcColor_.g * factor, srcColor_.b * factor);
-            if (!msgColor.isSame(msgColor_)) {
-                msgColor_.r = msgColor.r;
-                msgColor_.g = msgColor.g;
-                msgColor_.b = msgColor.b;
-                publishCallback_(msgColor);
-            }
-        }
-    }
-
-    void processButtons(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        const bool bumperPressed = msg->buttons[leftBumperButton] == 1;
-        const bool pressedA = msg->buttons[buttonA] == 1; // green color
-        const bool pressedB = msg->buttons[buttonB] == 1; // red color
-        const bool pressedX = msg->buttons[buttonX] == 1; // blue color
-        const bool pressedY = msg->buttons[buttonY] == 1; // white color
-        const uint8_t pressedButtons = pressedA << 0 | pressedB << 1 | pressedX << 2 | pressedY << 3;
-
-        std::optional<Color3> newColor;
-        if (pressedButtons != pressedButtons_ && pressedA) {
-            newColor.emplace(0, 1, 0);
-        } else if (pressedButtons != pressedButtons_ && pressedB) {
-            newColor.emplace(1, 0, 0);
-        } else if (pressedButtons != pressedButtons_ && pressedX) {
-            newColor.emplace(0, 0, 1);
-        } else if (pressedButtons != pressedButtons_ && pressedY) {
-            newColor.emplace(1, 1, 1);
-        }
-        pressedButtons_ = pressedButtons;
-
-        if (newColor.has_value()) {
-            if (!bumperPressed || headlightsOn_) {
-                headlightsOn_ = newColor->isSame(srcColor_) ? !headlightsOn_ : true;
-
-                if (publishCallback_) {
-                    const float factor = headlightsOn_ ? 1.0f : 0.0f;
-                    const Color3 msgColor(newColor->r * factor, newColor->g * factor, newColor->b * factor);
-                    if (!msgColor.isSame(msgColor_)) {
-                        msgColor_.r = msgColor.r;
-                        msgColor_.g = msgColor.g;
-                        msgColor_.b = msgColor.b;
-                        publishCallback_(msgColor);
-                    }
-                }
-            }
-            srcColor_.r = newColor->r;
-            srcColor_.g = newColor->g;
-            srcColor_.b = newColor->b;
-        }
-    }
-public:
-    void setPublishCallback(PublishHeadlightsCmdCallback publishCallback) {
-        publishCallback_ = std::move(publishCallback);
-    }
-
-    void process(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        processButtons(msg);
-        processTrigger(msg);
-    }
-};
 
 class GamepadNode final : public rclcpp::Node {
     static constexpr double maxSpeed = 1.0;
@@ -219,12 +107,12 @@ class GamepadNode final : public rclcpp::Node {
     mimi_interfaces::msg::DriveCmd driveMsg_;
 
     void processControlModeSwitching(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        if (approximatelyEqual(msg->axes[dPadAxisX], -1)) { // D-PAD RIGHT
+        if (approximatelyEqual(msg->axes[Xbox::dPadAxisX], -1)) { // D-PAD RIGHT
             if (controlMode_ != ControlMode::Headlights) {
                 controlMode_ = ControlMode::Headlights;
                 RCLCPP_INFO(this->get_logger(), "Switched to ControlMode::Headlights");
             }
-        } else if (approximatelyEqual(msg->axes[dPadAxisY], 1)) { // D-PAD UP
+        } else if (approximatelyEqual(msg->axes[Xbox::dPadAxisY], 1)) { // D-PAD UP
             if (controlMode_ != ControlMode::ScreenAnimations) {
                 controlMode_ = ControlMode::ScreenAnimations;
                 RCLCPP_INFO(this->get_logger(), "Switched to ControlMode::ScreenAnimations");
@@ -234,11 +122,11 @@ class GamepadNode final : public rclcpp::Node {
 
     void processScreenAnimationCommands(const sensor_msgs::msg::Joy::UniquePtr &msg) {
         if (controlMode_ != ControlMode::ScreenAnimations) return;
-        const bool bumperPressed = msg->buttons[leftBumperButton] == 1;
-        const bool pressedA = msg->buttons[buttonA] == 1;
-        const bool pressedB = msg->buttons[buttonB] == 1;
-        const bool pressedX = msg->buttons[buttonX] == 1;
-        const bool pressedY = msg->buttons[buttonY] == 1;
+        const bool bumperPressed = msg->buttons[Xbox::leftBumperButton] == 1;
+        const bool pressedA = msg->buttons[Xbox::buttonA] == 1;
+        const bool pressedB = msg->buttons[Xbox::buttonB] == 1;
+        const bool pressedX = msg->buttons[Xbox::buttonX] == 1;
+        const bool pressedY = msg->buttons[Xbox::buttonY] == 1;
         std::optional<uint32_t> scrAnimId;
         if (bumperPressed) {
             if (pressedA) {
@@ -270,10 +158,10 @@ class GamepadNode final : public rclcpp::Node {
     HeadlightsManager headlightsManager_;
 
     void processDriveCommands(const sensor_msgs::msg::Joy::UniquePtr &msg) {
-        const Vector2 joystickVector(-msg->axes[leftJoystickAxisX], msg->axes[leftJoystickAxisY]);
+        const Vector2 joystickVector(-msg->axes[Xbox::leftJoystickAxisX], msg->axes[Xbox::leftJoystickAxisY]);
         const Vector2 moveVector = CircleToSquare(joystickVector);
-        const bool fastRotation = msg->buttons[rightBumperButton] > 0;
-        const double speedFactor = fastRotation ? 1.0 : (1 - msg->axes[rightTriggerAxis]) / 2;
+        const bool fastRotation = msg->buttons[Xbox::rightBumperButton] > 0;
+        const double speedFactor = fastRotation ? 1.0 : (1 - msg->axes[Xbox::rightTriggerAxis]) / 2;
         const Vector2 motorValues = GetMotorValues(moveVector, static_cast<float>(speedFactor), fastRotation);
 
         // driveMsg_.left_speed = motorValues.x;

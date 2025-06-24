@@ -45,4 +45,50 @@ public:
     static constexpr int rightStickButton = 10;
 };
 
+class CommonHelper {
+public:
+    static bool approximatelyEqual(const float a, const float b) {
+        return std::fabs(a - b) < 1e-3f;
+    }
+
+    static Vector2 CircleToSquareInFirstQuadrant(Vector2 value) {
+        float x = value.x;
+        float y = value.y;
+        if (x == 0) return value; // (to avoid dividing by 0)
+        if (x >= 0 && y >= 0) {
+            const bool firstOctantInQuadrant = x >= y;
+            if (!firstOctantInQuadrant) std::swap(x, y);
+            const float resultX = sqrtf(x * x + y * y);
+            const float resultY = y * resultX / x;
+            value.x = resultX;
+            value.y = resultY;
+            if (!firstOctantInQuadrant) std::swap(value.x, value.y);
+        }
+        return value;
+    }
+
+    static Vector2 CircleToSquare(Vector2 value) {
+        if (value.x >= 0 && value.y >= 0) {
+            value = CircleToSquareInFirstQuadrant(value);
+        } else if (value.x < 0 && value.y >= 0) {
+            value.x = -value.x;
+            value = CircleToSquareInFirstQuadrant(value);
+            value.x = -value.x;
+        } else if (value.x < 0 && value.y < 0) {
+            value.x = -value.x;
+            value.y = -value.y;
+            value = CircleToSquareInFirstQuadrant(value);
+            value.x = -value.x;
+            value.y = -value.y;
+        } else if (value.x >= 0 && value.y < 0) {
+            value.y = -value.y;
+            value = CircleToSquareInFirstQuadrant(value);
+            value.y = -value.y;
+        }
+        value.x = std::clamp(value.x, -1.0f, 1.0f);
+        value.y = std::clamp(value.y, -1.0f, 1.0f);
+        return value;
+    }
+};
+
 #endif //TYPES_H

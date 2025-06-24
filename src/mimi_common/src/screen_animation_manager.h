@@ -4,7 +4,7 @@
 #include "types.h"
 #include "mimi_interfaces/msg/scr_anim_cmd.hpp"
 
-using PublishScrAnimCmdCallback = std::function<void(mimi_interfaces::msg::ScrAnimCmd scrAnimMsg)>;
+using PublishScrAnimCmdCallback = std::function<void(mimi_interfaces::msg::ScrAnimCmd& scrAnimMsg)>;
 
 class ScreenAnimationManager {
     static constexpr int scrAnimEmpty = 0;

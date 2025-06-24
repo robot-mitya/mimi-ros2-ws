@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-using PublishHeadlightsCmdCallback = std::function<void(Color3 color)>;
+using PublishHeadlightsCmdCallback = std::function<void(Color3& color)>;
 
 class HeadlightsManager {
     PublishHeadlightsCmdCallback publishCallback_ = nullptr;
@@ -20,7 +20,7 @@ class HeadlightsManager {
                 msgColor_.r = msgColor.r;
                 msgColor_.g = msgColor.g;
                 msgColor_.b = msgColor.b;
-                publishCallback_(msgColor);
+                publishCallback_(msgColor_);
             }
         }
     }
@@ -56,7 +56,7 @@ class HeadlightsManager {
                         msgColor_.r = msgColor.r;
                         msgColor_.g = msgColor.g;
                         msgColor_.b = msgColor.b;
-                        publishCallback_(msgColor);
+                        publishCallback_(msgColor_);
                     }
                 }
             }

@@ -87,6 +87,12 @@ int main(const int argc, char *argv[]) {
         },
         [node](const std::string& /*deviceAlias*/, const mimi::BleUartClient::State& state) {
             RCLCPP_INFO(node->get_logger(), "OnStateChanged: %s", mimi::BleUartClient::stateToString(state));
+            if (state == mimi::BleUartClient::State::Connected) {
+                const std::string command = mimi::str("emo ", static_cast<int>(7), "\r\n");
+                if (!bleClient->send(command)) {
+                    RCLCPP_ERROR(node->get_logger(), "Sending command failed: %s", command.c_str());
+                }
+            }
         },
         [node](const std::string& /*deviceAlias*/, const std::string& errorText, const std::string& /*sdbusErrorName*/, const mimi::BleUartClient::State& /*state*/) {
             RCLCPP_ERROR(node->get_logger(), "OnError: %s", errorText.c_str());
